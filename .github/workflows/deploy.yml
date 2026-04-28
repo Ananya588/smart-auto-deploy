@@ -1,0 +1,41 @@
+name: Auto Deploy to AWS
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_KEY }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET }}
+        aws-region: ap-south-1
+
+    - name: Login to ECR
+      run: |
+        aws ecr get-login-password --region ap-south-1 \
+        | docker login --username AWS --password-stdin 735045504074.dkr.ecr.ap-south-1.amazonaws.com
+
+    - name: Build Docker Image
+      run: docker build -t myapp ./app
+
+    - name: Tag Image
+      run: docker tag myapp:latest 735045504074.dkr.ecr.ap-south-1.amazonaws.com/myapp-repo:latest
+
+    - name: Push Image
+      run: docker push 735045504074.dkr.ecr.ap-south-1.amazonaws.com/myapp-repo:latest
+
+    - name: Force ECS Deployment
+      run: |
+        aws ecs update-service \
+          --cluster my-cluster \
+          --service my-service \
+          --force-new-deployment
