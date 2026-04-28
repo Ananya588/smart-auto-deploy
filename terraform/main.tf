@@ -107,10 +107,19 @@ resource "aws_ecs_task_definition" "app" {
     image = "735045504074.dkr.ecr.ap-south-1.amazonaws.com/myapp-repo:latest"
 
     portMappings = [{
-      containerPort = 5000
-      hostPort      = 5000
+        containerPort = 5000
+        hostPort      = 5000
     }]
-  }])
+
+    logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+        awslogs-group         = "/ecs/myapp"
+        awslogs-region        = "ap-south-1"
+        awslogs-stream-prefix = "ecs"
+        }
+    }
+    }])
 }
 
 # ---------------- Load Balancer ----------------
@@ -161,6 +170,11 @@ resource "aws_ecs_service" "service" {
   }
 
   depends_on = [aws_lb_listener.listener]
+}
+
+resource "aws_cloudwatch_log_group" "app_logs" {
+  name              = "/ecs/myapp"
+  retention_in_days = 7
 }
 
 output "load_balancer_url" {
